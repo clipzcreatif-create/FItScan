@@ -35,11 +35,16 @@
                         'scan-vertical': 'scan 3s linear infinite',
                         'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'float': 'float 6s ease-in-out infinite',
+                        'bounce-slight': 'bounce-slight 2s infinite',
                     },
                     keyframes: {
                         float: {
                             '0%, 100%': { transform: 'translateY(0)' },
                             '50%': { transform: 'translateY(-10px)' },
+                        },
+                        'bounce-slight': {
+                            '0%, 100%': { transform: 'translateY(-5%)', animationTimingFunction: 'cubic-bezier(0.8,0,1,1)' },
+                            '50%': { transform: 'translateY(0)', animationTimingFunction: 'cubic-bezier(0,0,0.2,1)' },
                         }
                     }
                 }
@@ -74,6 +79,14 @@
             100% { top: 100%; opacity: 0; }
         }
 
+        /* Checkmark Animation */
+        @keyframes check-scale {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-check { animation: check-scale 0.5s ease-out forwards; }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #111; }
@@ -102,9 +115,44 @@
                     <a href="#about" class="hover:text-neon transition text-sm font-medium">Tentang Kami</a>
                     <a href="#features" class="hover:text-neon transition text-sm font-medium">Fitur AI</a>
                     <a href="#pricing" class="hover:text-neon transition text-sm font-medium">Harga</a>
-                    <button @click="startScan('body')" class="bg-neon text-black font-bold px-5 py-2 rounded-full hover:bg-white transition hover:scale-105 shadow-[0_0_15px_rgba(57,255,20,0.4)] text-sm">
-                        Coba Demo
-                    </button>
+                    
+                    <!-- Auth State in Navbar -->
+                    <template x-if="!isLoggedIn">
+                        <button @click="openAuth('login')" class="bg-neon text-black font-bold px-5 py-2 rounded-full hover:bg-white transition hover:scale-105 shadow-[0_0_15px_rgba(57,255,20,0.4)] text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-user"></i> Login / Daftar
+                        </button>
+                    </template>
+                    
+                    <template x-if="isLoggedIn">
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <p class="text-xs text-gray-400">Halo,</p>
+                                <p class="text-sm font-bold text-white" x-text="currentUser.name"></p>
+                            </div>
+                            <div class="relative group cursor-pointer">
+                                <div class="w-10 h-10 rounded-full bg-gray-800 border-2 flex items-center justify-center overflow-hidden"
+                                     :class="currentUser.tier === 'Premium' ? 'border-neon' : 'border-gray-500'">
+                                    <i class="fa-solid fa-user text-gray-400"></i>
+                                </div>
+                                <!-- Badge Tier -->
+                                <div class="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider"
+                                     :class="currentUser.tier === 'Premium' ? 'bg-neon text-black' : 'bg-gray-600 text-white'">
+                                    <span x-text="currentUser.tier === 'Premium' ? 'PRO' : 'FREE'"></span>
+                                </div>
+                                
+                                <!-- Dropdown Logout -->
+                                <div class="absolute right-0 mt-2 w-48 bg-dark border border-gray-700 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right z-50">
+                                    <div class="p-3 border-b border-gray-800">
+                                        <p class="text-xs text-gray-500">Status Akun</p>
+                                        <p class="text-sm font-bold" :class="currentUser.tier === 'Premium' ? 'text-neon' : 'text-white'" x-text="currentUser.tier"></p>
+                                    </div>
+                                    <button @click="logout()" class="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-gray-900 rounded-b-xl">
+                                        <i class="fa-solid fa-right-from-bracket mr-2"></i> Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
 
                 <!-- Mobile Menu Button -->
@@ -119,15 +167,30 @@
              x-transition 
              class="md:hidden bg-dark/95 backdrop-blur-xl border-b border-gray-800 absolute w-full left-0 shadow-2xl z-50">
             <div class="px-4 py-6 space-y-4">
+                <!-- Mobile Auth Info -->
+                <div x-show="isLoggedIn" class="bg-gray-800/50 p-4 rounded-xl border border-gray-700 mb-4 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center">
+                        <i class="fa-solid fa-user text-white"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-white" x-text="currentUser?.name"></p>
+                        <span class="text-xs px-2 py-0.5 rounded" :class="currentUser?.tier === 'Premium' ? 'bg-neon text-black' : 'bg-gray-600 text-white'" x-text="currentUser?.tier"></span>
+                    </div>
+                </div>
+
                 <a href="#about" @click="mobileMenu = false" class="block text-base font-medium text-gray-300 hover:text-neon">Tentang Kami</a>
                 <a href="#features" @click="mobileMenu = false" class="block text-base font-medium text-gray-300 hover:text-neon">Fitur AI</a>
                 <a href="#pricing" @click="mobileMenu = false" class="block text-base font-medium text-gray-300 hover:text-neon">Harga & Paket</a>
-                <div class="grid grid-cols-2 gap-3 pt-2">
-                     <button @click="mobileMenu = false; startScan('food')" class="bg-gray-800 text-white font-bold py-3 rounded-xl border border-gray-700">
-                        <i class="fa-solid fa-utensils mr-2"></i> Scan Food
+                
+                <div x-show="!isLoggedIn">
+                    <button @click="mobileMenu = false; openAuth('login')" class="w-full bg-neon text-black font-bold py-3 rounded-xl mt-2">
+                        Login / Daftar
                     </button>
-                    <button @click="mobileMenu = false; startScan('body')" class="bg-neon text-black font-bold py-3 rounded-xl">
-                        <i class="fa-solid fa-person-running mr-2"></i> Scan Body
+                </div>
+                
+                <div x-show="isLoggedIn">
+                    <button @click="logout()" class="w-full border border-red-500 text-red-500 font-bold py-3 rounded-xl mt-2 hover:bg-red-500 hover:text-white transition">
+                        Logout
                     </button>
                 </div>
             </div>
@@ -166,22 +229,87 @@
                 </button>
             </div>
             
-            <div class="mt-12 flex justify-center gap-6 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-                <div class="flex flex-col items-center">
-                    <i class="fa-solid fa-heart-pulse text-2xl mb-1"></i>
-                    <span class="text-[10px] uppercase tracking-widest">Good Health</span>
-                </div>
-                <div class="flex flex-col items-center">
-                    <i class="fa-solid fa-lightbulb text-2xl mb-1"></i>
-                    <span class="text-[10px] uppercase tracking-widest">Innovation</span>
-                </div>
-                <div class="flex flex-col items-center">
-                    <i class="fa-solid fa-earth-asia text-2xl mb-1"></i>
-                    <span class="text-[10px] uppercase tracking-widest">UN SDGs</span>
-                </div>
+            <div class="mt-8">
+                <p x-show="!isLoggedIn" class="text-xs text-gray-500 animate-pulse">
+                    <i class="fa-solid fa-lock mr-1"></i> Login diperlukan untuk akses fitur
+                </p>
+                <p x-show="isLoggedIn" class="text-xs text-neon font-bold">
+                    <i class="fa-solid fa-unlock mr-1"></i> Akses diberikan: <span x-text="currentUser?.tier"></span>
+                </p>
             </div>
         </div>
     </section>
+
+    <!-- AUTH MODAL -->
+    <div x-show="showAuthModal" 
+         x-transition.opacity
+         class="fixed inset-0 z-[150] bg-black/95 backdrop-blur-md flex items-center justify-center p-4">
+        
+        <div class="bg-surface w-full max-w-md rounded-3xl border border-gray-800 shadow-2xl relative overflow-hidden" @click.away="showAuthModal = false">
+            <button @click="showAuthModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+            <!-- Login View -->
+            <div x-show="authMode === 'login'" class="p-8">
+                <div class="text-center mb-8">
+                    <i class="fa-solid fa-user-circle text-5xl text-neon mb-4"></i>
+                    <h3 class="text-2xl font-bold text-white">Selamat Datang</h3>
+                    <p class="text-gray-400 text-sm">Masuk untuk melanjutkan ke FitScan</p>
+                </div>
+                
+                <form @submit.prevent="login()" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Email</label>
+                        <input type="email" x-model="loginEmail" required class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-neon focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Password</label>
+                        <input type="password" x-model="loginPass" required class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-neon focus:outline-none transition">
+                    </div>
+                    <button type="submit" class="w-full bg-neon text-black font-bold py-3 rounded-xl hover:bg-white transition shadow-lg shadow-neon/20">
+                        Masuk
+                    </button>
+                </form>
+
+                <p class="text-center text-sm text-gray-500 mt-6">
+                    Belum punya akun? <a href="#" @click.prevent="authMode = 'register'" class="text-neon hover:underline">Daftar Sekarang</a>
+                </p>
+            </div>
+
+            <!-- Register View -->
+            <div x-show="authMode === 'register'" class="p-8">
+                <div class="text-center mb-8">
+                    <i class="fa-solid fa-user-plus text-5xl text-neon mb-4"></i>
+                    <h3 class="text-2xl font-bold text-white">Buat Akun</h3>
+                    <p class="text-gray-400 text-sm">Mulai perjalanan sehatmu hari ini</p>
+                </div>
+                
+                <form @submit.prevent="register()" class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Nama Lengkap</label>
+                        <input type="text" x-model="regName" required class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-neon focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Email</label>
+                        <input type="email" x-model="regEmail" required class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-neon focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Password</label>
+                        <input type="password" x-model="regPass" required class="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-neon focus:outline-none transition">
+                    </div>
+                    <button type="submit" class="w-full bg-neon text-black font-bold py-3 rounded-xl hover:bg-white transition shadow-lg shadow-neon/20">
+                        Daftar Gratis
+                    </button>
+                </form>
+
+                <p class="text-center text-sm text-gray-500 mt-6">
+                    Sudah punya akun? <a href="#" @click.prevent="authMode = 'login'" class="text-neon hover:underline">Login disini</a>
+                </p>
+            </div>
+
+        </div>
+    </div>
 
     <!-- PROBLEM & SOLUTION (Why Now) -->
     <section id="about" class="py-20 bg-surface border-t border-white/5">
@@ -291,7 +419,10 @@
 
             <div class="flex flex-col md:flex-row justify-center gap-6 max-w-4xl mx-auto">
                 <!-- Freemium -->
-                <div class="flex-1 bg-dark p-8 rounded-3xl border border-gray-800 opacity-80 hover:opacity-100 transition">
+                <div class="flex-1 bg-dark p-8 rounded-3xl border border-gray-800 opacity-80 hover:opacity-100 transition relative">
+                    <!-- Current Plan Badge -->
+                    <div x-show="isLoggedIn && currentUser?.tier === 'Free'" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-gray-600 text-white text-xs px-3 py-1 rounded-full font-bold shadow-lg">PLAN SAAT INI</div>
+                    
                     <h3 class="text-xl font-bold text-white mb-2">Freemium</h3>
                     <p class="text-4xl font-bold text-white mb-6">Rp 0</p>
                     <ul class="space-y-4 mb-8 text-sm text-gray-400">
@@ -299,11 +430,14 @@
                         <li class="flex items-center"><i class="fa-solid fa-check text-gray-500 mr-2"></i> Pencatatan Manual</li>
                         <li class="flex items-center"><i class="fa-solid fa-check text-gray-500 mr-2"></i> Komunitas Umum</li>
                     </ul>
-                    <button class="w-full py-3 rounded-xl border border-gray-600 text-white font-bold hover:bg-white hover:text-black transition">Daftar Gratis</button>
+                    <button class="w-full py-3 rounded-xl border border-gray-600 text-white font-bold cursor-not-allowed opacity-50">Gratis Selamanya</button>
                 </div>
 
                 <!-- Subscription -->
                 <div class="flex-1 bg-gray-900 p-8 rounded-3xl border border-neon relative transform md:-translate-y-4 shadow-[0_0_30px_rgba(57,255,20,0.1)]">
+                    <!-- Current Plan Badge -->
+                    <div x-show="isLoggedIn && currentUser?.tier === 'Premium'" class="absolute -top-3 left-1/2 -translate-x-1/2 bg-neon text-black text-xs px-3 py-1 rounded-full font-bold shadow-lg z-20">AKTIF - PLAN SAAT INI</div>
+
                     <div class="absolute top-0 right-0 bg-neon text-black text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">POPULAR</div>
                     <h3 class="text-xl font-bold text-white mb-2">Full Access</h3>
                     <p class="text-4xl font-bold text-white mb-1">Rp 79.000<span class="text-sm font-normal text-gray-400">/bln</span></p>
@@ -313,7 +447,12 @@
                         <li class="flex items-center"><i class="fa-solid fa-check text-neon mr-2"></i> <strong>AI Food Recognition</strong></li>
                         <li class="flex items-center"><i class="fa-solid fa-check text-neon mr-2"></i> Personalized Meal Plan</li>
                     </ul>
-                    <button class="w-full py-3 rounded-xl bg-neon text-black font-bold hover:bg-white transition shadow-lg shadow-neon/20">Mulai Langganan</button>
+                    <button @click="startPayment()" 
+                            class="w-full py-3 rounded-xl font-bold transition shadow-lg shadow-neon/20"
+                            :class="isLoggedIn && currentUser?.tier === 'Premium' ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-neon text-black hover:bg-white'"
+                            :disabled="isLoggedIn && currentUser?.tier === 'Premium'">
+                        <span x-text="isLoggedIn && currentUser?.tier === 'Premium' ? 'Sudah Aktif' : 'Mulai Langganan'"></span>
+                    </button>
                 </div>
 
                 <!-- B2B -->
@@ -325,7 +464,7 @@
                         <li class="flex items-center"><i class="fa-solid fa-check text-blue-400 mr-2"></i> Untuk Personal Trainer</li>
                         <li class="flex items-center"><i class="fa-solid fa-check text-blue-400 mr-2"></i> Untuk Gym Owner</li>
                     </ul>
-                    <button class="w-full py-3 rounded-xl border border-blue-400 text-blue-400 font-bold hover:bg-blue-400 hover:text-black transition">Hubungi Sales</button>
+                    <button @click="contactSales()" class="w-full py-3 rounded-xl border border-blue-400 text-blue-400 font-bold hover:bg-blue-400 hover:text-black transition">Hubungi Sales</button>
                 </div>
             </div>
         </div>
@@ -491,6 +630,98 @@
         </div>
     </div>
 
+    <!-- PAYMENT MODAL -->
+    <div x-show="showPaymentModal" 
+         x-transition.opacity
+         class="fixed inset-0 z-[120] bg-black/95 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-4">
+        
+        <div class="bg-surface w-full md:max-w-md md:rounded-3xl rounded-t-3xl border-t md:border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] relative">
+            <button @click="closePayment()" class="absolute top-4 right-4 text-gray-400 hover:text-white z-20">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+            <!-- STEP 1: Method -->
+            <div x-show="paymentStep === 1" class="p-6 md:p-8 flex flex-col h-full">
+                <h3 class="text-2xl font-bold text-white mb-2">Metode Pembayaran</h3>
+                <p class="text-gray-400 text-sm mb-6">Pilih cara pembayaran yang nyaman untuk Anda.</p>
+                
+                <div class="space-y-3 flex-1">
+                    <button @click="paymentStep = 2" class="w-full bg-dark p-4 rounded-xl border border-gray-700 hover:border-neon transition flex items-center justify-between group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold text-xs">BCA</div>
+                            <div class="text-left">
+                                <p class="font-bold text-white group-hover:text-neon">Transfer Bank BCA</p>
+                                <p class="text-xs text-gray-500">Otomatis dicek</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-gray-600 group-hover:text-neon"></i>
+                    </button>
+                    <button @click="paymentStep = 2" class="w-full bg-dark p-4 rounded-xl border border-gray-700 hover:border-neon transition flex items-center justify-between group">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-800 rounded-lg flex items-center justify-center text-white font-bold text-xs">MDR</div>
+                            <div class="text-left">
+                                <p class="font-bold text-white group-hover:text-neon">Mandiri Virtual</p>
+                                <p class="text-xs text-gray-500">Otomatis dicek</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-gray-600 group-hover:text-neon"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2: Transfer Details -->
+            <div x-show="paymentStep === 2" class="p-6 md:p-8 flex flex-col h-full">
+                <div class="text-center mb-6">
+                    <p class="text-gray-400 text-sm">Total Pembayaran</p>
+                    <h3 class="text-3xl font-bold text-neon mb-1">Rp 79.000</h3>
+                    <div class="inline-block px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] rounded font-mono">BERAKHIR DLM 14:59</div>
+                </div>
+
+                <div class="bg-dark p-4 rounded-xl border border-dashed border-gray-700 mb-6">
+                    <p class="text-xs text-gray-500 mb-1">Nomor Virtual Account</p>
+                    <div class="flex justify-between items-center">
+                        <p class="font-mono text-xl font-bold text-white tracking-wider">8801 9384 1928</p>
+                        <button class="text-neon text-sm font-bold hover:text-white">SALIN</button>
+                    </div>
+                </div>
+
+                <ul class="text-xs text-gray-400 space-y-2 mb-8 list-disc pl-4">
+                    <li>Transfer sesuai nominal hingga 3 digit terakhir.</li>
+                    <li>Simpan bukti transfer jika diperlukan.</li>
+                    <li>Proses verifikasi membutuhkan waktu 1-5 menit.</li>
+                </ul>
+
+                <button @click="processPayment()" class="w-full bg-neon text-black font-bold py-3 rounded-xl hover:bg-white transition shadow-neon/20 shadow-lg">
+                    Saya Sudah Transfer
+                </button>
+            </div>
+
+            <!-- STEP 3: Processing -->
+            <div x-show="paymentStep === 3" class="p-6 md:p-8 flex flex-col h-full items-center justify-center text-center">
+                <div class="w-20 h-20 border-4 border-gray-800 border-t-neon rounded-full animate-spin mb-6"></div>
+                <h3 class="text-xl font-bold text-white mb-2">Memverifikasi...</h3>
+                <p class="text-gray-400 text-sm">Mohon tunggu sebentar, sistem sedang mengecek mutasi bank Anda.</p>
+            </div>
+
+            <!-- STEP 4: Success -->
+            <div x-show="paymentStep === 4" class="p-6 md:p-8 flex flex-col h-full items-center justify-center text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-neon/5"></div>
+                
+                <div class="w-24 h-24 bg-neon rounded-full flex items-center justify-center mb-6 shadow-[0_0_50px_rgba(57,255,20,0.5)] animate-check">
+                    <i class="fa-solid fa-check text-4xl text-black"></i>
+                </div>
+                
+                <h3 class="text-2xl font-bold text-white mb-2 animate-bounce-slight">Pembayaran Berhasil!</h3>
+                <p class="text-gray-300 text-sm mb-8">Paket <strong class="text-neon">Full Access</strong> Anda telah aktif selama 30 hari.</p>
+                
+                <button @click="closePayment()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl border border-gray-600 hover:bg-gray-700 transition">
+                    Kembali ke Beranda
+                </button>
+            </div>
+
+        </div>
+    </div>
+
     <!-- FOOTER -->
     <footer class="bg-black py-12 border-t border-white/10">
         <div class="container mx-auto px-4 text-center">
@@ -519,11 +750,26 @@
                 mobileMenu: false,
                 isScanning: false,
                 showResults: false,
+                showPaymentModal: false,
+                showAuthModal: false,
+                authMode: 'login', // 'login' or 'register'
+                paymentStep: 1,
                 cameraError: false,
                 scanStatus: 'INIT',
-                scanMode: 'body', // 'body' or 'food'
+                scanMode: 'body', 
                 stream: null,
+                
+                // User & Auth State
+                isLoggedIn: false,
                 isReturningUser: false,
+                currentUser: null, // { name: '', email: '', tier: 'Free' }
+                
+                // Form Models
+                loginEmail: '',
+                loginPass: '',
+                regName: '',
+                regEmail: '',
+                regPass: '',
 
                 // Data Holders
                 currentFoodResult: { name: '-', cal: 0, protein: 0, score: 0, type: '-' },
@@ -535,9 +781,7 @@
                     { name: "Gado-Gado", cal: 320, protein: 12, score: 92, type: "Cutting" },
                     { name: "Sate Ayam (10 Tusuk)", cal: 450, protein: 38, score: 94, type: "High Protein" },
                     { name: "Nasi Padang Rendang", cal: 720, protein: 28, score: 98, type: "Bulking" },
-                    { name: "Salmon Steak & Veg", cal: 400, protein: 40, score: 99, type: "Cutting" },
-                    { name: "Bubur Ayam Jakarta", cal: 280, protein: 18, score: 88, type: "Breakfast" },
-                    { name: "Martabak Manis (2 Potong)", cal: 650, protein: 8, score: 99, type: "Cheat Day" }
+                    { name: "Salmon Steak & Veg", cal: 400, protein: 40, score: 99, type: "Cutting" }
                 ],
 
                 initApp() {
@@ -545,7 +789,14 @@
                         this.scrolled = window.scrollY > 20;
                     });
                     
-                    // Cek apakah ada data user tersimpan (Face ID simulation)
+                    // Cek LocalStorage untuk User Session
+                    const savedUser = localStorage.getItem('fitscan_user');
+                    if (savedUser) {
+                        this.currentUser = JSON.parse(savedUser);
+                        this.isLoggedIn = true;
+                    }
+
+                    // Cek data scan sebelumnya
                     const savedBody = localStorage.getItem('fitscan_body_data');
                     if (savedBody) {
                         this.currentBodyResult = JSON.parse(savedBody);
@@ -553,7 +804,108 @@
                     }
                 },
 
+                // --- AUTH LOGIC ---
+                openAuth(mode) {
+                    this.authMode = mode;
+                    this.showAuthModal = true;
+                    this.mobileMenu = false;
+                },
+
+                login() {
+                    // Demo Login: Asal isi email & password dianggap sukses
+                    if(this.loginEmail && this.loginPass) {
+                        // Cek apakah ada data tersimpan di "backend" simulasi
+                        // Untuk demo ini, kita anggap user "Budi" login jika belum ada data
+                        this.currentUser = {
+                            name: 'User Demo',
+                            email: this.loginEmail,
+                            tier: 'Free' // Default tier
+                        };
+                        this.saveUser();
+                        this.isLoggedIn = true;
+                        this.showAuthModal = false;
+                        this.resetForms();
+                    }
+                },
+
+                register() {
+                    // Demo Register
+                    if(this.regName && this.regEmail && this.regPass) {
+                        this.currentUser = {
+                            name: this.regName,
+                            email: this.regEmail,
+                            tier: 'Free' // Default Free Tier
+                        };
+                        this.saveUser();
+                        this.isLoggedIn = true;
+                        this.showAuthModal = false;
+                        this.resetForms();
+                    }
+                },
+
+                logout() {
+                    this.isLoggedIn = false;
+                    this.currentUser = null;
+                    localStorage.removeItem('fitscan_user');
+                    this.mobileMenu = false;
+                },
+
+                saveUser() {
+                    localStorage.setItem('fitscan_user', JSON.stringify(this.currentUser));
+                },
+
+                resetForms() {
+                    this.loginEmail = '';
+                    this.loginPass = '';
+                    this.regName = '';
+                    this.regEmail = '';
+                    this.regPass = '';
+                },
+
+                // --- PAYMENT LOGIC ---
+                startPayment() {
+                    if(!this.isLoggedIn) {
+                        this.openAuth('login');
+                        return;
+                    }
+                    this.showPaymentModal = true;
+                    this.paymentStep = 1;
+                },
+
+                processPayment() {
+                    this.paymentStep = 3; // Processing
+                    // Simulasi loading 2.5 detik
+                    setTimeout(() => {
+                        this.paymentStep = 4; // Success
+                        
+                        // Upgrade Tier User
+                        if(this.currentUser) {
+                            this.currentUser.tier = 'Premium';
+                            this.saveUser();
+                        }
+                    }, 2500);
+                },
+
+                closePayment() {
+                    this.showPaymentModal = false;
+                    setTimeout(() => this.paymentStep = 1, 300);
+                },
+
+                contactSales() {
+                    const phoneNumber = "6285739588337";
+                    const message = "Halo Tim FitScan, saya tertarik dengan paket FitScan Pro untuk Gym/PT. Mohon infonya.";
+                    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+                    window.open(url, '_blank');
+                },
+
+                // --- SCANNER LOGIC ---
                 async startScan(mode) {
+                    // Proteksi Fitur: Harus Login Dulu
+                    if (!this.isLoggedIn) {
+                        this.openAuth('login');
+                        return;
+                    }
+
                     this.scanMode = mode;
                     this.mobileMenu = false;
                     this.isScanning = true;
@@ -561,7 +913,6 @@
                     this.scanStatus = 'MENGHUBUNGKAN KAMERA...';
                     this.cameraError = false;
 
-                    // Pilih kamera belakang untuk makanan, depan untuk body (jika didukung)
                     const facingMode = mode === 'food' ? 'environment' : 'user';
 
                     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -617,19 +968,16 @@
                     this.stopCamera();
                     
                     if (this.scanMode === 'food') {
-                        // Generate Random Food setiap kali scan (Simulasi deteksi real-time)
                         const randomIndex = Math.floor(Math.random() * this.foodDatabase.length);
                         this.currentFoodResult = this.foodDatabase[randomIndex];
                     } 
                     else if (this.scanMode === 'body') {
-                        // Logic Wajah: Jika user lama, pakai data lama. Jika user baru/reset, buat acak.
                         const savedBody = localStorage.getItem('fitscan_body_data');
                         
                         if (savedBody) {
                             this.currentBodyResult = JSON.parse(savedBody);
                             this.isReturningUser = true;
                         } else {
-                            // Generate New Random Data
                             const newBodyData = {
                                 score: Math.floor(Math.random() * (95 - 65) + 65),
                                 fat: (Math.random() * (25 - 10) + 10).toFixed(1),
@@ -637,9 +985,7 @@
                             };
                             this.currentBodyResult = newBodyData;
                             localStorage.setItem('fitscan_body_data', JSON.stringify(newBodyData));
-                            this.isReturningUser = false; // Barusan scan baru
-                            
-                            // Set timeout biar next time jadi returning
+                            this.isReturningUser = false;
                             setTimeout(() => { this.isReturningUser = true; }, 1000);
                         }
                     }
@@ -654,7 +1000,6 @@
                     localStorage.removeItem('fitscan_body_data');
                     this.isReturningUser = false;
                     this.closeResults();
-                    // Mulai scan baru dengan status bersih
                     setTimeout(() => {
                         this.startScan('body');
                     }, 500);
