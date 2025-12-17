@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FitScan - Mobile First Scanner</title>
+    <title>FitScan - The Ultimate AI Fitness & Nutrition Ecosystem</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,448 +12,674 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Alpine.js -->
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        neon: '#39FF14',
+                        dark: '#050505',
+                        surface: '#121212',
+                        primary: '#00C853'
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                    },
+                    animation: {
+                        'scan-vertical': 'scan 3s linear infinite',
+                        'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 
     <style>
-        :root {
-            --neon-green: #39FF14;
-            --dark-bg: #0a0a0a;
-        }
-        
         body {
-            font-family: 'Montserrat', sans-serif;
-            background-color: var(--dark-bg);
+            background-color: #050505;
             color: #ffffff;
             -webkit-tap-highlight-color: transparent;
-            overscroll-behavior-y: none; /* Mencegah efek bounce scroll di iOS */
         }
 
-        /* Utilities */
-        .text-neon { color: var(--neon-green); }
-        .bg-neon { background-color: var(--neon-green); }
-        .border-neon { border-color: var(--neon-green); }
-        .shadow-neon { box-shadow: 0 0 15px rgba(57, 255, 20, 0.3); }
-
-        /* Animation: Marquee (Teks Berjalan) */
-        @keyframes marquee {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
+        /* Neon Glow Effects */
+        .text-glow { text-shadow: 0 0 10px rgba(57, 255, 20, 0.7); }
+        .box-glow { box-shadow: 0 0 20px rgba(57, 255, 20, 0.2); }
+        
+        /* Grid Background Pattern */
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(57, 255, 20, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(57, 255, 20, 0.05) 1px, transparent 1px);
         }
-        .animate-marquee { animation: marquee 30s linear infinite; }
 
-        /* Scanner Frame CSS */
-        .scan-frame {
-            position: relative;
-            width: 70vw;
-            height: 40vh;
-            border: 2px solid rgba(57, 255, 20, 0.3);
-            border-radius: 20px;
-            box-shadow: 0 0 20px rgba(57, 255, 20, 0.1);
+        /* Scanner Animation */
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
         }
-        .corner {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            border-color: var(--neon-green);
-            border-style: solid;
-        }
-        .tl { top: -1px; left: -1px; border-width: 4px 0 0 4px; border-top-left-radius: 20px; }
-        .tr { top: -1px; right: -1px; border-width: 4px 4px 0 0; border-top-right-radius: 20px; }
-        .bl { bottom: -1px; left: -1px; border-width: 0 0 4px 4px; border-bottom-left-radius: 20px; }
-        .br { bottom: -1px; right: -1px; border-width: 0 4px 4px 0; border-bottom-right-radius: 20px; }
 
-        /* Custom Scrollbar for Modal */
-        .custom-scroll::-webkit-scrollbar { width: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: var(--neon-green); border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #222; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #39FF14; border-radius: 2px; }
+
+        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
     </style>
 </head>
-<body class="antialiased" 
-    x-data="{ 
-        mobileMenu: false,
-        isScanning: false,
-        showResult: false,
-        scanStatus: 'Siap',
-        isUserKnown: false,
-        result: { score: 0, fat: 0, muscle: 0, water: 0, protein: 0 },
+<body class="antialiased overflow-x-hidden relative" 
+      x-data="appData()" 
+      x-init="initApp()">
 
-        // Fungsi Memulai Scan
-        startScan() {
-            this.isScanning = true;
-            this.showResult = false;
-            this.scanStatus = 'Mengakses Kamera...';
-            this.checkUserHistory();
-
-            // Akses Kamera
-            navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
-            }).then(stream => {
-                this.$refs.video.srcObject = stream;
-                this.$refs.video.play();
-                this.simulateProcess();
-            }).catch(() => {
-                this.scanStatus = 'Simulasi Mode (Kamera Gagal)';
-                this.simulateProcess();
-            });
-        },
-
-        // Cek LocalStorage
-        checkUserHistory() {
-            const data = localStorage.getItem('fitscan_data');
-            if (data) {
-                this.result = JSON.parse(data);
-                this.isUserKnown = true;
-            } else {
-                this.isUserKnown = false;
-            }
-        },
-
-        // Simulasi Proses AI
-        simulateProcess() {
-            setTimeout(() => this.scanStatus = 'Mendeteksi Wajah...', 1000);
-            setTimeout(() => this.scanStatus = 'Analisis Biometrik...', 2500);
-            setTimeout(() => {
-                this.scanStatus = this.isUserKnown ? 'User Lama Dikenali' : 'User Baru Terdeteksi';
-            }, 3500);
-            setTimeout(() => this.finishScan(), 4500);
-        },
-
-        // Selesai Scan
-        finishScan() {
-            // Stop Kamera
-            if(this.$refs.video.srcObject) {
-                this.$refs.video.srcObject.getTracks().forEach(track => track.stop());
-                this.$refs.video.srcObject = null;
-            }
-
-            // Generate Data Baru Jika User Baru
-            if (!this.isUserKnown) {
-                this.result = {
-                    score: Math.floor(Math.random() * (95 - 75) + 75),
-                    fat: (Math.random() * (25 - 12) + 12).toFixed(1),
-                    muscle: (Math.random() * (60 - 40) + 40).toFixed(1),
-                    water: Math.floor(Math.random() * (65 - 55) + 55),
-                    protein: (Math.random() * (20 - 15) + 15).toFixed(1)
-                };
-                localStorage.setItem('fitscan_data', JSON.stringify(this.result));
-            }
-
-            this.isScanning = false;
-            this.showResult = true;
-        },
-
-        // Reset Data untuk Orang Lain
-        scanNewUser() {
-            localStorage.removeItem('fitscan_data');
-            this.isUserKnown = false;
-            this.showResult = false;
-            this.startScan();
-        }
-    }">
-
-    <!-- 1. NAVBAR (Mobile Optimized) -->
-    <nav class="fixed w-full z-40 bg-black/90 backdrop-blur border-b border-white/10 top-0">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between items-center h-16">
+    <!-- NAVBAR -->
+    <nav class="fixed w-full z-40 transition-all duration-300"
+         :class="scrolled ? 'bg-dark/90 backdrop-blur-md border-b border-white/10' : 'bg-transparent'">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 md:h-20">
                 <!-- Logo -->
                 <div class="flex items-center gap-2 cursor-pointer" @click="window.scrollTo(0,0)">
-                    <i class="fa-solid fa-dna text-neon text-xl"></i>
-                    <span class="font-bold text-xl tracking-tighter">FIT<span class="text-neon">SCAN</span></span>
+                    <i class="fa-solid fa-dna text-neon text-2xl animate-pulse-fast"></i>
+                    <span class="font-bold text-xl md:text-2xl tracking-tighter">FIT<span class="text-neon text-glow">SCAN</span></span>
                 </div>
 
                 <!-- Desktop Menu -->
-                <div class="hidden md:flex items-center space-x-8 text-sm font-semibold">
-                    <a href="#fitur" class="hover:text-neon transition">Fitur</a>
-                    <a href="#demo" class="hover:text-neon transition">Demo</a>
-                    <a href="#testimoni" class="hover:text-neon transition">Testimoni</a>
-                    <a href="#order" class="bg-neon text-black px-5 py-2 rounded-full hover:bg-white transition">Pre-Order</a>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#about" class="hover:text-neon transition text-sm font-medium">Tentang Kami</a>
+                    <a href="#features" class="hover:text-neon transition text-sm font-medium">Fitur AI</a>
+                    <a href="#pricing" class="hover:text-neon transition text-sm font-medium">Harga</a>
+                    <button @click="startScan('body')" class="bg-neon text-black font-bold px-5 py-2 rounded-full hover:bg-white transition hover:scale-105 shadow-[0_0_15px_rgba(57,255,20,0.4)] text-sm">
+                        Coba Demo
+                    </button>
                 </div>
 
-                <!-- Mobile Hamburger -->
-                <button @click="mobileMenu = !mobileMenu" class="md:hidden text-white p-2">
-                    <i class="fa-solid fa-bars text-xl"></i>
+                <!-- Mobile Menu Button -->
+                <button @click="mobileMenu = !mobileMenu" class="md:hidden text-white p-2 focus:outline-none">
+                    <i class="fa-solid text-xl" :class="mobileMenu ? 'fa-xmark' : 'fa-bars'"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Mobile Dropdown -->
-        <div x-show="mobileMenu" @click.outside="mobileMenu = false" x-transition class="md:hidden bg-black border-b border-gray-800 absolute w-full">
-            <div class="flex flex-col p-4 space-y-4 text-center">
-                <a href="#fitur" @click="mobileMenu = false" class="text-gray-300 hover:text-neon">Fitur</a>
-                <a href="#demo" @click="mobileMenu = false" class="text-gray-300 hover:text-neon">Demo Data</a>
-                <a href="#order" @click="mobileMenu = false" class="bg-neon text-black font-bold py-3 rounded-lg">Pre-Order Sekarang</a>
+        <!-- Mobile Menu Dropdown -->
+        <div x-show="mobileMenu" 
+             x-transition 
+             class="md:hidden bg-dark/95 backdrop-blur-xl border-b border-gray-800 absolute w-full left-0 shadow-2xl z-50">
+            <div class="px-4 py-6 space-y-4">
+                <a href="#about" @click="mobileMenu = false" class="block text-base font-medium text-gray-300 hover:text-neon">Tentang Kami</a>
+                <a href="#features" @click="mobileMenu = false" class="block text-base font-medium text-gray-300 hover:text-neon">Fitur AI</a>
+                <a href="#pricing" @click="mobileMenu = false" class="block text-base font-medium text-gray-300 hover:text-neon">Harga & Paket</a>
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                     <button @click="mobileMenu = false; startScan('food')" class="bg-gray-800 text-white font-bold py-3 rounded-xl border border-gray-700">
+                        <i class="fa-solid fa-utensils mr-2"></i> Scan Food
+                    </button>
+                    <button @click="mobileMenu = false; startScan('body')" class="bg-neon text-black font-bold py-3 rounded-xl">
+                        <i class="fa-solid fa-person-running mr-2"></i> Scan Body
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
 
-    <!-- 2. HERO SECTION -->
-    <section class="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
-        <!-- Background Image -->
-        <div class="absolute inset-0 z-0">
-            <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=2070&auto=format&fit=crop" class="w-full h-full object-cover opacity-30">
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/80 to-transparent"></div>
-            <!-- Grid Pattern -->
-            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50"></div>
+    <!-- HERO SECTION -->
+    <section class="relative min-h-[100dvh] flex items-center justify-center overflow-hidden pt-16">
+        <div class="absolute inset-0 bg-dark">
+            <div class="absolute inset-0 bg-grid opacity-30"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-dark via-transparent to-dark"></div>
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] bg-neon/5 blur-[100px] rounded-full pointer-events-none"></div>
         </div>
 
-        <div class="relative z-10 text-center px-6 max-w-2xl mx-auto">
-            <div class="inline-block border border-neon rounded-full px-3 py-1 mb-6 bg-black/50 backdrop-blur">
-                <span class="text-neon text-xs font-bold tracking-widest uppercase">Teknologi Biometrik 2025</span>
+        <div class="relative z-10 container mx-auto px-4 text-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-neon/30 bg-neon/5 mb-6 backdrop-blur-sm animate-float">
+                <span class="w-2 h-2 rounded-full bg-neon animate-pulse"></span>
+                <span class="text-neon text-xs md:text-sm font-mono tracking-widest uppercase">Revolutionizing Fitness with AI</span>
             </div>
-            <h1 class="text-4xl md:text-6xl font-extrabold mb-6 leading-tight">
-                Kenali Tubuhmu<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">Lebih Dalam</span>
+            
+            <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight tracking-tight">
+                The Ultimate AI <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-neon to-green-500 text-glow">Fitness Ecosystem</span>
             </h1>
-            <p class="text-gray-400 text-sm md:text-lg mb-8 leading-relaxed">
-                Scan wajah dan tubuh menggunakan AI untuk mengetahui kadar lemak, massa otot, dan metabolisme dalam hitungan detik.
+            
+            <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+                Gabungan <strong>AI Food Recognition</strong> dan <strong>Motion Analysis</strong> dalam satu aplikasi. Capai body goal (Cutting/Bulking) lebih cepat dan aman.
             </p>
-            <div class="flex flex-col gap-3 w-full sm:w-auto sm:flex-row justify-center">
-                <button @click="startScan()" class="bg-neon text-black font-bold py-4 px-8 rounded-full shadow-[0_0_20px_rgba(57,255,20,0.4)] active:scale-95 transition-transform flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-camera"></i> Mulai Scan
+
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center w-full max-w-md mx-auto sm:max-w-none">
+                <button @click="startScan('body')" class="w-full sm:w-auto bg-neon text-black font-extrabold px-8 py-4 rounded-xl text-lg hover:bg-white transition transform hover:-translate-y-1 box-glow flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-camera"></i> AI Motion Scan
                 </button>
-                <a href="#fitur" class="border border-white/20 bg-white/5 text-white font-bold py-4 px-8 rounded-full active:scale-95 transition-transform backdrop-blur flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-info-circle"></i> Pelajari
-                </a>
+                <button @click="startScan('food')" class="w-full sm:w-auto border border-gray-700 bg-white/5 backdrop-blur text-white font-semibold px-8 py-4 rounded-xl text-lg hover:border-neon hover:text-neon transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bowl-food"></i> AI Food Scan
+                </button>
+            </div>
+            
+            <div class="mt-12 flex justify-center gap-6 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                <div class="flex flex-col items-center">
+                    <i class="fa-solid fa-heart-pulse text-2xl mb-1"></i>
+                    <span class="text-[10px] uppercase tracking-widest">Good Health</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <i class="fa-solid fa-lightbulb text-2xl mb-1"></i>
+                    <span class="text-[10px] uppercase tracking-widest">Innovation</span>
+                </div>
+                <div class="flex flex-col items-center">
+                    <i class="fa-solid fa-earth-asia text-2xl mb-1"></i>
+                    <span class="text-[10px] uppercase tracking-widest">UN SDGs</span>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- 3. SCANNER MODAL (FULLSCREEN MOBILE) -->
-    <div x-show="isScanning" x-transition.opacity class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
+    <!-- PROBLEM & SOLUTION (Why Now) -->
+    <section id="about" class="py-20 bg-surface border-t border-white/5">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold mb-6">Mengapa <span class="text-neon">FitScan?</span></h2>
+                    <div class="space-y-6">
+                        <div class="bg-dark p-6 rounded-2xl border border-red-900/30 relative overflow-hidden">
+                            <div class="absolute right-0 top-0 p-4 opacity-10"><i class="fa-solid fa-triangle-exclamation text-6xl text-red-500"></i></div>
+                            <h3 class="text-xl font-bold text-red-500 mb-2">Masalah Umum</h3>
+                            <ul class="space-y-3 text-gray-400 text-sm">
+                                <li class="flex items-start"><i class="fa-solid fa-xmark text-red-500 mt-1 mr-3"></i> 60% Member Gym berhenti di 3 bulan pertama.</li>
+                                <li class="flex items-start"><i class="fa-solid fa-xmark text-red-500 mt-1 mr-3"></i> Salah hitung kalori & nutrisi harian.</li>
+                                <li class="flex items-start"><i class="fa-solid fa-xmark text-red-500 mt-1 mr-3"></i> Form latihan keliru menyebabkan cedera.</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="bg-dark p-6 rounded-2xl border border-neon/30 relative overflow-hidden">
+                            <div class="absolute right-0 top-0 p-4 opacity-10"><i class="fa-solid fa-check-circle text-6xl text-neon"></i></div>
+                            <h3 class="text-xl font-bold text-neon mb-2">Solusi FitScan</h3>
+                            <ul class="space-y-3 text-gray-300 text-sm">
+                                <li class="flex items-start"><i class="fa-solid fa-check text-neon mt-1 mr-3"></i> Ekosistem All-in-One (Food + Motion).</li>
+                                <li class="flex items-start"><i class="fa-solid fa-check text-neon mt-1 mr-3"></i> Virtual PT dengan Computer Vision real-time.</li>
+                                <li class="flex items-start"><i class="fa-solid fa-check text-neon mt-1 mr-3"></i> Roadmap personal (Cutting/Bulking/Recomp).</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="relative">
+                    <div class="absolute inset-0 bg-neon/10 blur-3xl rounded-full"></div>
+                    <div class="relative bg-dark border border-gray-800 rounded-3xl p-6 shadow-2xl">
+                        <!-- Simulated Chart -->
+                        <div class="flex justify-between items-end mb-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Market Gap</p>
+                                <p class="text-2xl font-bold text-white">High Demand</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">Growth (SEA)</p>
+                                <p class="text-2xl font-bold text-neon">+40%</p>
+                            </div>
+                        </div>
+                        <div class="h-40 flex items-end justify-between gap-2">
+                            <div class="w-full bg-gray-800 rounded-t-lg h-[40%]"></div>
+                            <div class="w-full bg-gray-800 rounded-t-lg h-[55%]"></div>
+                            <div class="w-full bg-gray-800 rounded-t-lg h-[70%]"></div>
+                            <div class="w-full bg-neon rounded-t-lg h-[100%] box-glow relative group">
+                                <div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition">Now</div>
+                            </div>
+                        </div>
+                        <p class="mt-4 text-xs text-center text-gray-500 font-mono">Pertumbuhan Pengguna Aplikasi Kesehatan di Asia Tenggara</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES SECTION -->
+    <section id="features" class="py-20 bg-dark relative">
+        <div class="absolute inset-0 bg-grid opacity-20 pointer-events-none"></div>
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="text-center mb-16">
+                <span class="text-neon text-sm font-bold tracking-widest uppercase">Core Technology</span>
+                <h2 class="text-3xl md:text-5xl font-bold mt-2">Dua AI dalam <span class="text-white bg-neon/10 px-2 rounded">Satu Aplikasi</span></h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- AI Food -->
+                <div class="bg-surface p-8 rounded-3xl border border-white/5 hover:border-neon/50 transition duration-300 group hover:-translate-y-2">
+                    <div class="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center mb-6 border border-gray-700 group-hover:border-neon group-hover:bg-neon/10">
+                        <i class="fa-solid fa-utensils text-neon text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">AI Food Recognition</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Hitung makro & kalori otomatis hanya dari foto makanan. Akurasi tinggi untuk masakan lokal maupun internasional.</p>
+                </div>
+
+                <!-- AI Motion -->
+                <div class="bg-surface p-8 rounded-3xl border border-white/5 hover:border-neon/50 transition duration-300 group hover:-translate-y-2">
+                    <div class="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center mb-6 border border-gray-700 group-hover:border-neon group-hover:bg-neon/10">
+                        <i class="fa-solid fa-person-running text-neon text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">AI Motion Analysis</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Koreksi form latihan real-time untuk mencegah cedera. Bertindak sebagai "Virtual PT" pribadi Anda di gym atau rumah.</p>
+                </div>
+
+                <!-- Roadmap -->
+                <div class="bg-surface p-8 rounded-3xl border border-white/5 hover:border-neon/50 transition duration-300 group hover:-translate-y-2">
+                    <div class="w-14 h-14 bg-gray-900 rounded-2xl flex items-center justify-center mb-6 border border-gray-700 group-hover:border-neon group-hover:bg-neon/10">
+                        <i class="fa-solid fa-map-location-dot text-neon text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Personalized Roadmap</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">Rekomendasi program latihan dan nutrisi yang disesuaikan dengan tujuan spesifik: Cutting, Bulking, atau Recomp.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="pricing" class="py-20 bg-surface border-y border-white/5">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold">Pilih Paket Anda</h2>
+                <p class="text-gray-400 mt-2">Investasi terbaik untuk kesehatan jangka panjang.</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-center gap-6 max-w-4xl mx-auto">
+                <!-- Freemium -->
+                <div class="flex-1 bg-dark p-8 rounded-3xl border border-gray-800 opacity-80 hover:opacity-100 transition">
+                    <h3 class="text-xl font-bold text-white mb-2">Freemium</h3>
+                    <p class="text-4xl font-bold text-white mb-6">Rp 0</p>
+                    <ul class="space-y-4 mb-8 text-sm text-gray-400">
+                        <li class="flex items-center"><i class="fa-solid fa-check text-gray-500 mr-2"></i> Akses Fitur Dasar</li>
+                        <li class="flex items-center"><i class="fa-solid fa-check text-gray-500 mr-2"></i> Pencatatan Manual</li>
+                        <li class="flex items-center"><i class="fa-solid fa-check text-gray-500 mr-2"></i> Komunitas Umum</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-xl border border-gray-600 text-white font-bold hover:bg-white hover:text-black transition">Daftar Gratis</button>
+                </div>
+
+                <!-- Subscription -->
+                <div class="flex-1 bg-gray-900 p-8 rounded-3xl border border-neon relative transform md:-translate-y-4 shadow-[0_0_30px_rgba(57,255,20,0.1)]">
+                    <div class="absolute top-0 right-0 bg-neon text-black text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl">POPULAR</div>
+                    <h3 class="text-xl font-bold text-white mb-2">Full Access</h3>
+                    <p class="text-4xl font-bold text-white mb-1">Rp 79.000<span class="text-sm font-normal text-gray-400">/bln</span></p>
+                    <p class="text-xs text-neon mb-6">Setara harga 2x kopi kekinian</p>
+                    <ul class="space-y-4 mb-8 text-sm text-gray-300">
+                        <li class="flex items-center"><i class="fa-solid fa-check text-neon mr-2"></i> <strong>AI Motion Analysis</strong> Unlimited</li>
+                        <li class="flex items-center"><i class="fa-solid fa-check text-neon mr-2"></i> <strong>AI Food Recognition</strong></li>
+                        <li class="flex items-center"><i class="fa-solid fa-check text-neon mr-2"></i> Personalized Meal Plan</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-xl bg-neon text-black font-bold hover:bg-white transition shadow-lg shadow-neon/20">Mulai Langganan</button>
+                </div>
+
+                <!-- B2B -->
+                <div class="flex-1 bg-dark p-8 rounded-3xl border border-gray-800 opacity-80 hover:opacity-100 transition">
+                    <h3 class="text-xl font-bold text-white mb-2">FitScan Pro</h3>
+                    <p class="text-lg font-bold text-white mb-6">B2B Partner</p>
+                    <ul class="space-y-4 mb-8 text-sm text-gray-400">
+                        <li class="flex items-center"><i class="fa-solid fa-check text-blue-400 mr-2"></i> Dashboard Monitoring Klien</li>
+                        <li class="flex items-center"><i class="fa-solid fa-check text-blue-400 mr-2"></i> Untuk Personal Trainer</li>
+                        <li class="flex items-center"><i class="fa-solid fa-check text-blue-400 mr-2"></i> Untuk Gym Owner</li>
+                    </ul>
+                    <button class="w-full py-3 rounded-xl border border-blue-400 text-blue-400 font-bold hover:bg-blue-400 hover:text-black transition">Hubungi Sales</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TEAM -->
+    <section class="py-20 bg-dark border-t border-white/5 text-center">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl font-bold mb-10">Leadership Team</h2>
+            <div class="inline-block bg-surface p-6 rounded-3xl border border-gray-800 hover:border-neon transition duration-300">
+                <div class="w-24 h-24 bg-gray-800 rounded-full mx-auto mb-4 overflow-hidden border-2 border-neon">
+                    <!-- Placeholder Avatar -->
+                    <img src="https://ui-avatars.com/api/?name=Rafael+Sanjales&background=39FF14&color=000" alt="Rafael" class="w-full h-full object-cover">
+                </div>
+                <h3 class="text-xl font-bold text-white">Rafael Sanjales T.L.</h3>
+                <p class="text-neon text-xs font-bold tracking-widest uppercase mt-1">CEO & Founder</p>
+                <p class="text-gray-400 text-sm mt-4 max-w-xs mx-auto">Visioner di balik ekosistem FitScan, memimpin strategi jangka panjang dan kemitraan.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SCANNER MODAL (Updated for Dual Mode) -->
+    <div x-show="isScanning" 
+         x-transition.opacity.duration.300ms
+         class="fixed inset-0 z-[100] bg-black flex flex-col safe-bottom">
+        
         <!-- Video Container -->
-        <div class="relative w-full h-full md:w-[600px] md:h-[800px] bg-black overflow-hidden flex items-center justify-center">
+        <div class="relative flex-1 w-full overflow-hidden bg-gray-900">
             <video x-ref="video" class="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]" playsinline autoplay muted></video>
             
-            <!-- Overlay UI -->
-            <div class="relative z-10 flex flex-col items-center justify-between h-full py-12 w-full">
-                <!-- Top Bar -->
-                <div class="w-full px-6 flex justify-between items-center">
-                    <div class="text-xs font-mono text-neon bg-black/60 px-2 py-1 rounded">REC ●</div>
-                    <button @click="isScanning = false" class="bg-black/50 text-white rounded-full p-2 w-8 h-8 flex items-center justify-center border border-white/20">
-                        <i class="fa-solid fa-xmark"></i>
+            <!-- Simulation Overlays -->
+            <div x-show="cameraError" class="absolute inset-0 flex items-center justify-center bg-gray-900">
+                <div class="absolute inset-0 bg-grid opacity-20"></div>
+                <p class="text-gray-500">Mode Simulasi Aktif</p>
+            </div>
+
+            <!-- HUD Overlay -->
+            <div class="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between">
+                <!-- Top HUD -->
+                <div class="flex justify-between items-start pointer-events-auto">
+                    <div class="text-xs font-mono text-neon/80">
+                        <p>MODE: <span class="text-white font-bold" x-text="scanMode === 'food' ? 'FOOD RECOGNITION' : 'MOTION ANALYSIS'"></span></p>
+                        <p class="mt-1"><span class="animate-pulse text-red-500">●</span> LIVE AI PROCESSING</p>
+                    </div>
+                    <button @click="stopScan()" class="bg-black/40 backdrop-blur border border-white/20 p-2 rounded-full text-white hover:text-red-500 transition">
+                        <i class="fa-solid fa-xmark text-xl w-6 h-6 flex items-center justify-center"></i>
                     </button>
                 </div>
 
-                <!-- Frame Tengah -->
-                <div class="scan-frame flex items-center justify-center">
-                    <div class="corner tl"></div>
-                    <div class="corner tr"></div>
-                    <div class="corner bl"></div>
-                    <div class="corner br"></div>
-                    <!-- Garis Scan Static (Ringan) -->
-                    <div class="w-full h-[1px] bg-neon opacity-50"></div>
+                <!-- Center Scanner Box -->
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70vw] h-[45vh] max-w-[400px] border-2 border-neon/30 rounded-2xl overflow-hidden box-glow transition-all duration-500"
+                     :class="scanMode === 'food' ? 'h-[35vh] rounded-xl' : 'h-[50vh]'">
+                    <!-- Corners -->
+                    <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-neon"></div>
+                    <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-neon"></div>
+                    <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-neon"></div>
+                    <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-neon"></div>
+                    
+                    <!-- Scan Line -->
+                    <div class="absolute w-full h-1 bg-neon shadow-[0_0_15px_#39FF14] animate-scan-vertical"></div>
+                    
+                    <!-- Target Icon -->
+                    <div class="absolute inset-0 flex items-center justify-center opacity-50">
+                        <i class="fa-solid text-4xl text-neon" :class="scanMode === 'food' ? 'fa-utensils' : 'fa-person-running'"></i>
+                    </div>
                 </div>
 
-                <!-- Status Bawah -->
-                <div class="bg-black/70 backdrop-blur border border-neon/50 px-6 py-2 rounded-full">
-                    <span class="text-neon font-mono text-sm tracking-widest animate-pulse" x-text="scanStatus"></span>
+                <!-- Bottom Status -->
+                <div class="text-center mb-8">
+                    <div class="inline-block bg-black/60 backdrop-blur border border-neon/50 px-6 py-2 rounded-full">
+                        <i class="fa-solid fa-circle-notch fa-spin text-neon mr-2"></i>
+                        <span class="font-mono text-neon text-sm uppercase tracking-widest" x-text="scanStatus">INITIALIZING...</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 4. RESULT MODAL (POPUP) -->
-    <div x-show="showResult" x-transition class="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-end md:items-center justify-center sm:p-4">
-        <div class="bg-[#111] w-full md:max-w-md rounded-t-3xl md:rounded-3xl border-t md:border border-gray-800 p-6 shadow-2xl max-h-[85vh] overflow-y-auto custom-scroll">
-            
-            <!-- Header Result -->
-            <div class="flex justify-between items-start mb-6">
-                <div>
-                    <p class="text-gray-400 text-xs uppercase tracking-wide mb-1">Status Identitas</p>
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-neon"></span>
-                        <span class="font-bold text-white text-sm" x-text="isUserKnown ? 'User Terdaftar' : 'User Baru'"></span>
+    <!-- RESULT MODAL -->
+    <div x-show="showResults" 
+         x-transition.opacity
+         class="fixed inset-0 z-[110] bg-black/90 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+        
+        <div class="bg-surface w-full md:max-w-md md:rounded-3xl rounded-t-3xl border-t md:border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div class="p-4 border-b border-white/5 flex justify-between items-center bg-dark/50">
+                <h3 class="font-bold text-lg text-white">
+                    <i class="fa-solid mr-2 text-neon" :class="scanMode === 'food' ? 'fa-bowl-food' : 'fa-clipboard-check'"></i>
+                    <span x-text="scanMode === 'food' ? 'Nutrisi Makanan' : 'Analisis Tubuh'"></span>
+                </h3>
+                <button @click="closeResults()" class="text-gray-400 hover:text-white bg-white/5 p-2 rounded-full">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto custom-scrollbar">
+                
+                <!-- Food Result -->
+                <div x-show="scanMode === 'food'">
+                    <div class="text-center mb-6">
+                        <div class="inline-block p-3 rounded-full bg-orange-500/20 text-orange-400 mb-2 border border-orange-500/50">
+                            <i class="fa-solid fa-burger text-2xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-white" x-text="currentFoodResult.name"></h2>
+                        <p class="text-gray-400 text-sm">Akurasi AI: <span x-text="currentFoodResult.score"></span>%</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-dark p-3 rounded-xl border border-white/10 text-center">
+                            <p class="text-xs text-gray-500">Kalori</p>
+                            <p class="text-xl font-bold text-white"><span x-text="currentFoodResult.cal"></span> <span class="text-xs text-neon">kcal</span></p>
+                        </div>
+                        <div class="bg-dark p-3 rounded-xl border border-white/10 text-center">
+                            <p class="text-xs text-gray-500">Protein</p>
+                            <p class="text-xl font-bold text-white"><span x-text="currentFoodResult.protein"></span> <span class="text-xs text-neon">g</span></p>
+                        </div>
+                    </div>
+                    <div class="bg-blue-900/20 p-4 rounded-xl border border-blue-500/30 text-sm text-blue-200">
+                        <i class="fa-solid fa-circle-info mr-2"></i> Cocok untuk program <strong x-text="currentFoodResult.type"></strong> Anda.
                     </div>
                 </div>
-                <button @click="showResult = false" class="text-gray-500 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
 
-            <!-- Score Utama -->
-            <div class="flex justify-center mb-8">
-                <div class="relative w-32 h-32 flex items-center justify-center">
-                    <svg class="w-full h-full transform -rotate-90">
-                        <circle cx="64" cy="64" r="58" fill="none" stroke="#222" stroke-width="8"></circle>
-                        <circle cx="64" cy="64" r="58" fill="none" stroke="#39FF14" stroke-width="8" stroke-dasharray="365" :stroke-dashoffset="365 - (365 * result.score / 100)" class="transition-all duration-1000"></circle>
-                    </svg>
-                    <div class="absolute text-center">
-                        <span class="text-4xl font-bold text-white" x-text="result.score"></span>
-                        <p class="text-[10px] text-gray-400 uppercase">Fit Score</p>
+                <!-- Body Result -->
+                <div x-show="scanMode === 'body'">
+                    <div class="mb-4 text-center" x-show="isReturningUser">
+                        <span class="inline-block px-3 py-1 bg-neon/10 border border-neon rounded-full text-xs text-neon font-bold uppercase tracking-wider">
+                            <i class="fa-solid fa-face-smile mr-1"></i> Wajah Dikenali
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col items-center justify-center mb-6">
+                         <div class="w-32 h-32 rounded-full border-4 border-gray-800 flex items-center justify-center relative">
+                            <!-- Animated Ring -->
+                            <div class="absolute inset-0 rounded-full border-4 border-neon border-t-transparent animate-spin" style="animation-duration: 3s"></div>
+                            <div class="text-center">
+                                <span class="text-4xl font-bold text-white" x-text="currentBodyResult.score"></span>
+                                <p class="text-[10px] text-gray-400 uppercase">Fit Score</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center bg-dark p-3 rounded-xl border border-white/10">
+                            <span class="text-gray-400 text-sm">Body Fat</span>
+                            <span class="font-bold text-white"><span x-text="currentBodyResult.fat"></span>%</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-dark p-3 rounded-xl border border-white/10">
+                            <span class="text-gray-400 text-sm">Muscle Mass</span>
+                            <span class="font-bold text-white"><span x-text="currentBodyResult.muscle"></span> kg</span>
+                        </div>
                     </div>
                 </div>
+
             </div>
 
-            <!-- Grid Data -->
-            <div class="grid grid-cols-2 gap-3 mb-6">
-                <div class="bg-black/50 p-4 rounded-xl border border-white/5">
-                    <p class="text-[10px] text-gray-500 uppercase mb-1">Body Fat</p>
-                    <p class="text-xl font-bold"><span x-text="result.fat"></span><span class="text-xs text-neon ml-1">%</span></p>
-                </div>
-                <div class="bg-black/50 p-4 rounded-xl border border-white/5">
-                    <p class="text-[10px] text-gray-500 uppercase mb-1">Otot</p>
-                    <p class="text-xl font-bold"><span x-text="result.muscle"></span><span class="text-xs text-neon ml-1">kg</span></p>
-                </div>
-                <div class="bg-black/50 p-4 rounded-xl border border-white/5">
-                    <p class="text-[10px] text-gray-500 uppercase mb-1">Air</p>
-                    <p class="text-xl font-bold"><span x-text="result.water"></span><span class="text-xs text-neon ml-1">%</span></p>
-                </div>
-                <div class="bg-black/50 p-4 rounded-xl border border-white/5">
-                    <p class="text-[10px] text-gray-500 uppercase mb-1">Protein</p>
-                    <p class="text-xl font-bold"><span x-text="result.protein"></span><span class="text-xs text-neon ml-1">%</span></p>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="space-y-3">
-                <button @click="startScan()" class="w-full bg-neon text-black font-bold py-3 rounded-xl active:scale-95 transition-transform">
+            <div class="p-4 bg-dark border-t border-white/10 flex flex-col gap-3 safe-bottom">
+                <button @click="startScan(scanMode)" class="w-full bg-neon text-black font-bold py-3 rounded-xl hover:bg-white transition text-sm shadow-neon/50 shadow-lg">
                     <i class="fa-solid fa-rotate-right mr-2"></i> Scan Ulang
                 </button>
-                <button @click="scanNewUser()" class="w-full bg-gray-800 text-white font-bold py-3 rounded-xl active:scale-95 transition-transform border border-gray-700">
+                
+                <!-- Reset Button (Only for Body Scan) -->
+                <button x-show="scanMode === 'body'" @click="resetBodyData()" class="w-full bg-gray-800 text-gray-400 font-bold py-3 rounded-xl hover:text-white hover:bg-gray-700 transition text-sm border border-gray-700">
                     <i class="fa-solid fa-user-plus mr-2"></i> Scan Orang Lain
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 5. FEATURES (Grid Responsif) -->
-    <section id="fitur" class="py-16 px-4 bg-black">
-        <div class="max-w-6xl mx-auto">
-            <h2 class="text-2xl md:text-3xl font-bold text-center mb-10">Kenapa <span class="text-neon">FitScan?</span></h2>
+    <!-- FOOTER -->
+    <footer class="bg-black py-12 border-t border-white/10">
+        <div class="container mx-auto px-4 text-center">
+            <div class="flex justify-center items-center gap-2 mb-6">
+                <i class="fa-solid fa-dna text-neon text-xl"></i>
+                <span class="font-bold text-xl text-white">FIT<span class="text-neon">SCAN</span></span>
+            </div>
+            <p class="text-gray-500 text-sm mb-8 max-w-md mx-auto">Kami membantu Anda mencapai tujuan kebugaran dengan teknologi AI yang presisi. Bergabunglah dengan revolusi kesehatan ini.</p>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Item 1 -->
-                <div class="bg-gray-900 p-6 rounded-2xl border border-gray-800 flex flex-col items-center text-center">
-                    <div class="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-neon mb-4">
-                        <i class="fa-solid fa-bolt text-neon"></i>
-                    </div>
-                    <h3 class="font-bold text-white mb-2">Instan</h3>
-                    <p class="text-sm text-gray-400">Hasil analisis tubuh lengkap hanya dalam waktu kurang dari 5 detik.</p>
-                </div>
-                <!-- Item 2 -->
-                <div class="bg-gray-900 p-6 rounded-2xl border border-gray-800 flex flex-col items-center text-center">
-                    <div class="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-neon mb-4">
-                        <i class="fa-solid fa-mobile-screen text-neon"></i>
-                    </div>
-                    <h3 class="font-bold text-white mb-2">Akurat</h3>
-                    <p class="text-sm text-gray-400">Menggunakan sensor dual-frequency untuk presisi tingkat medis.</p>
-                </div>
-                <!-- Item 3 -->
-                <div class="bg-gray-900 p-6 rounded-2xl border border-gray-800 flex flex-col items-center text-center">
-                    <div class="w-12 h-12 bg-black rounded-full flex items-center justify-center border border-neon mb-4">
-                        <i class="fa-solid fa-brain text-neon"></i>
-                    </div>
-                    <h3 class="font-bold text-white mb-2">AI Powered</h3>
-                    <p class="text-sm text-gray-400">Teknologi pengenalan wajah untuk melacak progres jangka panjang.</p>
-                </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-400 mb-10">
+                <a href="#" class="hover:text-neon">Kebijakan Privasi</a>
+                <a href="#" class="hover:text-neon">Syarat & Ketentuan</a>
+                <a href="#" class="hover:text-neon">Hubungi Kami</a>
+                <a href="#" class="hover:text-neon">Investor Relations</a>
             </div>
-        </div>
-    </section>
 
-    <!-- 6. DEMO DATA (Static Display) -->
-    <section id="demo" class="py-16 px-4 border-t border-gray-900">
-        <div class="max-w-md mx-auto bg-gray-900 rounded-3xl p-6 border border-gray-800 shadow-lg">
-            <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-800">
-                <div>
-                    <p class="text-xs text-gray-500">Contoh Hasil</p>
-                    <p class="font-bold">Atlet Pro</p>
-                </div>
-                <i class="fa-solid fa-medal text-neon text-xl"></i>
-            </div>
-            
-            <div class="flex justify-between items-end mb-4">
-                <div>
-                    <span class="text-3xl font-bold text-white">12.5</span>
-                    <span class="text-sm text-neon font-bold">%</span>
-                    <p class="text-xs text-gray-500 mt-1">Body Fat Ideal</p>
-                </div>
-                <div class="h-16 w-1 bg-gray-800 rounded-full relative">
-                    <div class="absolute bottom-0 w-full bg-neon h-[70%] rounded-full"></div>
-                </div>
-            </div>
-            <p class="text-xs text-gray-400 text-center">Data divisualisasikan dengan grafik intuitif.</p>
-        </div>
-    </section>
-
-    <!-- 7. TESTIMONIALS (Marquee) -->
-    <section id="testimoni" class="py-16 bg-gradient-to-b from-black to-gray-900 overflow-hidden">
-        <h2 class="text-2xl font-bold text-center mb-10">Kata Mereka</h2>
-        
-        <div class="flex space-x-6 w-max animate-marquee">
-            <!-- Card Loop (Manual Duplicate for smoothness) -->
-            <div class="w-72 bg-black border border-gray-800 p-5 rounded-xl flex-shrink-0">
-                <p class="text-gray-300 text-xs italic mb-4">"Akhirnya paham kenapa berat badan saya stuck. Ternyata massa otot naik!"</p>
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-xs font-bold">AD</div>
-                    <div class="text-xs font-bold">Andi, Crossfitter</div>
-                </div>
-            </div>
-            <div class="w-72 bg-black border border-gray-800 p-5 rounded-xl flex-shrink-0">
-                <p class="text-gray-300 text-xs italic mb-4">"Alat wajib buat yang lagi program diet. Datanya lengkap banget."</p>
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-xs font-bold">SL</div>
-                    <div class="text-xs font-bold">Siti, Ibu Rumah Tangga</div>
-                </div>
-            </div>
-            <div class="w-72 bg-black border border-gray-800 p-5 rounded-xl flex-shrink-0">
-                <p class="text-gray-300 text-xs italic mb-4">"Koneksi ke HP cepet banget, ga pake ribet."</p>
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-xs font-bold">BP</div>
-                    <div class="text-xs font-bold">Budi, Mahasiswa</div>
-                </div>
-            </div>
-            <!-- Duplicate for loop -->
-            <div class="w-72 bg-black border border-gray-800 p-5 rounded-xl flex-shrink-0">
-                <p class="text-gray-300 text-xs italic mb-4">"Akhirnya paham kenapa berat badan saya stuck. Ternyata massa otot naik!"</p>
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-xs font-bold">AD</div>
-                    <div class="text-xs font-bold">Andi, Crossfitter</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 8. PRE-ORDER FORM -->
-    <section id="order" class="py-20 px-4 bg-black relative">
-        <div class="max-w-md mx-auto relative z-10 text-center">
-            <h2 class="text-3xl font-extrabold mb-2">Ubah Hidup Anda</h2>
-            <p class="text-gray-400 text-sm mb-8">Harga Spesial Pre-Order Terbatas.</p>
-            
-            <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-2xl">
-                <div class="flex justify-between items-end mb-6 border-b border-gray-800 pb-4">
-                    <span class="text-gray-400 text-sm">Flash Sale</span>
-                    <div class="text-right">
-                        <span class="text-xs text-red-500 line-through block">Rp 500.000</span>
-                        <span class="text-3xl font-bold text-neon">Rp 199.000</span>
-                    </div>
-                </div>
-
-                <form x-data="{ loading: false, success: false }" @submit.prevent="loading = true; setTimeout(() => { loading = false; success = true }, 1500)">
-                    <div class="space-y-3">
-                        <input type="email" required placeholder="Masukkan Email Aktif" class="w-full bg-black border border-gray-700 rounded-lg px-4 py-3 text-white text-sm focus:outline-none focus:border-neon transition-colors">
-                        <button type="submit" class="w-full bg-neon text-black font-bold py-3 rounded-lg hover:bg-white transition-all flex justify-center items-center text-sm active:scale-95 disabled:opacity-50" :disabled="loading || success">
-                            <span x-show="!loading && !success">Ambil Promo Sekarang</span>
-                            <span x-show="loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Memproses...</span>
-                            <span x-show="success"><i class="fa-solid fa-check"></i> Berhasil!</span>
-                        </button>
-                    </div>
-                    <p class="text-[10px] text-gray-500 mt-4"><i class="fa-solid fa-shield-halved mr-1"></i> Garansi Uang Kembali 30 Hari.</p>
-                </form>
-            </div>
-        </div>
-        <!-- Background Glow -->
-        <div class="absolute inset-0 bg-neon opacity-5 blur-[100px] pointer-events-none"></div>
-    </section>
-
-    <!-- 9. FOOTER -->
-    <footer class="bg-[#080808] py-8 border-t border-gray-900 text-center text-gray-500 text-xs">
-        <p class="mb-4">© 2025 FitScan Indonesia. Hak Cipta Dilindungi.</p>
-        <div class="flex justify-center space-x-6 text-lg">
-            <a href="#" class="hover:text-neon"><i class="fa-brands fa-instagram"></i></a>
-            <a href="#" class="hover:text-neon"><i class="fa-brands fa-tiktok"></i></a>
-            <a href="#" class="hover:text-neon"><i class="fa-brands fa-whatsapp"></i></a>
+            <p class="text-gray-700 text-xs">© 2024 FitScan AI Ecosystem. Kelompok 13 Binus University Malang.</p>
         </div>
     </footer>
 
+    <!-- LOGIC SCRIPT -->
+    <script>
+        function appData() {
+            return {
+                scrolled: false,
+                mobileMenu: false,
+                isScanning: false,
+                showResults: false,
+                cameraError: false,
+                scanStatus: 'INIT',
+                scanMode: 'body', // 'body' or 'food'
+                stream: null,
+                isReturningUser: false,
+
+                // Data Holders
+                currentFoodResult: { name: '-', cal: 0, protein: 0, score: 0, type: '-' },
+                currentBodyResult: { score: 0, fat: 0, muscle: 0 },
+
+                // Food Database (Simulasi AI)
+                foodDatabase: [
+                    { name: "Nasi Ayam Bakar", cal: 540, protein: 32, score: 96, type: "Bulking" },
+                    { name: "Gado-Gado", cal: 320, protein: 12, score: 92, type: "Cutting" },
+                    { name: "Sate Ayam (10 Tusuk)", cal: 450, protein: 38, score: 94, type: "High Protein" },
+                    { name: "Nasi Padang Rendang", cal: 720, protein: 28, score: 98, type: "Bulking" },
+                    { name: "Salmon Steak & Veg", cal: 400, protein: 40, score: 99, type: "Cutting" },
+                    { name: "Bubur Ayam Jakarta", cal: 280, protein: 18, score: 88, type: "Breakfast" },
+                    { name: "Martabak Manis (2 Potong)", cal: 650, protein: 8, score: 99, type: "Cheat Day" }
+                ],
+
+                initApp() {
+                    window.addEventListener('scroll', () => {
+                        this.scrolled = window.scrollY > 20;
+                    });
+                    
+                    // Cek apakah ada data user tersimpan (Face ID simulation)
+                    const savedBody = localStorage.getItem('fitscan_body_data');
+                    if (savedBody) {
+                        this.currentBodyResult = JSON.parse(savedBody);
+                        this.isReturningUser = true;
+                    }
+                },
+
+                async startScan(mode) {
+                    this.scanMode = mode;
+                    this.mobileMenu = false;
+                    this.isScanning = true;
+                    this.showResults = false;
+                    this.scanStatus = 'MENGHUBUNGKAN KAMERA...';
+                    this.cameraError = false;
+
+                    // Pilih kamera belakang untuk makanan, depan untuk body (jika didukung)
+                    const facingMode = mode === 'food' ? 'environment' : 'user';
+
+                    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                        try {
+                            const stream = await navigator.mediaDevices.getUserMedia({
+                                video: { facingMode: facingMode },
+                                audio: false
+                            });
+                            this.stream = stream;
+                            this.$refs.video.srcObject = stream;
+                            this.runScanSequence();
+                        } catch (err) {
+                            console.log("Camera fail, fallback mode");
+                            this.handleCameraError();
+                        }
+                    } else {
+                        this.handleCameraError();
+                    }
+                },
+
+                handleCameraError() {
+                    this.cameraError = true;
+                    this.scanStatus = 'SIMULASI AI...';
+                    this.runScanSequence();
+                },
+
+                runScanSequence() {
+                    const steps = [
+                        { time: 1000, text: this.scanMode === 'food' ? 'MENDETEKSI OBJEK...' : 'MENDETEKSI WAJAH & TUBUH...' },
+                        { time: 2500, text: this.scanMode === 'food' ? 'MENGHITUNG KALORI...' : 'IDENTIFIKASI BIOMETRIK...' },
+                        { time: 4000, text: 'FINALISASI DATA...' },
+                        { time: 5000, action: 'finish' }
+                    ];
+
+                    let currentStep = 0;
+                    const nextStep = () => {
+                        if (currentStep >= steps.length) return;
+                        const step = steps[currentStep];
+                        setTimeout(() => {
+                            if (step.action === 'finish') {
+                                this.finishScan();
+                            } else {
+                                this.scanStatus = step.text;
+                                currentStep++;
+                                nextStep();
+                            }
+                        }, step.time - (currentStep > 0 ? steps[currentStep-1].time : 0));
+                    };
+                    nextStep();
+                },
+
+                finishScan() {
+                    this.stopCamera();
+                    
+                    if (this.scanMode === 'food') {
+                        // Generate Random Food setiap kali scan (Simulasi deteksi real-time)
+                        const randomIndex = Math.floor(Math.random() * this.foodDatabase.length);
+                        this.currentFoodResult = this.foodDatabase[randomIndex];
+                    } 
+                    else if (this.scanMode === 'body') {
+                        // Logic Wajah: Jika user lama, pakai data lama. Jika user baru/reset, buat acak.
+                        const savedBody = localStorage.getItem('fitscan_body_data');
+                        
+                        if (savedBody) {
+                            this.currentBodyResult = JSON.parse(savedBody);
+                            this.isReturningUser = true;
+                        } else {
+                            // Generate New Random Data
+                            const newBodyData = {
+                                score: Math.floor(Math.random() * (95 - 65) + 65),
+                                fat: (Math.random() * (25 - 10) + 10).toFixed(1),
+                                muscle: (Math.random() * (65 - 45) + 45).toFixed(1)
+                            };
+                            this.currentBodyResult = newBodyData;
+                            localStorage.setItem('fitscan_body_data', JSON.stringify(newBodyData));
+                            this.isReturningUser = false; // Barusan scan baru
+                            
+                            // Set timeout biar next time jadi returning
+                            setTimeout(() => { this.isReturningUser = true; }, 1000);
+                        }
+                    }
+
+                    this.isScanning = false;
+                    setTimeout(() => {
+                        this.showResults = true;
+                    }, 300);
+                },
+
+                resetBodyData() {
+                    localStorage.removeItem('fitscan_body_data');
+                    this.isReturningUser = false;
+                    this.closeResults();
+                    // Mulai scan baru dengan status bersih
+                    setTimeout(() => {
+                        this.startScan('body');
+                    }, 500);
+                },
+
+                stopCamera() {
+                    if (this.stream) {
+                        this.stream.getTracks().forEach(track => track.stop());
+                        this.stream = null;
+                    }
+                    if (this.$refs.video) {
+                        this.$refs.video.srcObject = null;
+                    }
+                },
+
+                stopScan() {
+                    this.stopCamera();
+                    this.isScanning = false;
+                },
+
+                closeResults() {
+                    this.showResults = false;
+                }
+            }
+        }
+    </script>
 </body>
 </html>
